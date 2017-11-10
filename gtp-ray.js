@@ -3,7 +3,7 @@
 const { coord2move } = require('./gtp-util.js');
 const { InvalidConfiguration, GtpClient } = require('./gtp.js');
 
-export class GtpRay extends GtpClient {
+class GtpRay extends GtpClient {
     static init() {
         super.init();
         this.WORK_DIR = process.env.PWD;
