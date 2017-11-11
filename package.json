@@ -1,6 +1,6 @@
 {
   "name": "gtp-wrapper",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "a wrapper for GTP client",
   "main": "index.js",
   "scripts": {
@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/y-ich/gtp-wrapper/issues"
   },
-  "homepage": "https://github.com/y-ich/gtp-wrapper#readme"
+  "homepage": "https://github.com/y-ich/gtp-wrapper#readme",
+  "dependencies": {
+    "byline": "^5.0.0"
+  }
 }
