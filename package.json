@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/y-ich/gtp-wrapper#readme",
   "dependencies": {
-    "byline": "^5.0.0"
+    "byline": "^5.0.0",
+    "jssgf": "^0.3.7"
   }
 }
