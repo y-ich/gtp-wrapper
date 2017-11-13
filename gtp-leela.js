@@ -18,8 +18,7 @@ class GtpLeela extends GtpHelper {
     genmoveStderrExecutor(res, rej) {
         const variations = [];
         let mcFlag = false;
-        this.stderrHandler = line => {
-            console.log(line);
+        this.genmoveStderrHandler = line => {
             if (/book moves/.test(line)) {
                 res({ comment: 'book moves' });
             } else if (/^MC winrate=/.test(line)) {
@@ -41,6 +40,15 @@ class GtpLeela extends GtpHelper {
                     }
                 }
             }
+        }
+    }
+
+    onStderrData(data) {
+        if (this.stderrHandler) {
+            this.stderrHandler(data);
+        }
+        if (this.genmoveStderrHandler) {
+            this.genmoveStderrHandler(data);
         }
     }
 }

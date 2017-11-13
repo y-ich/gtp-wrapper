@@ -138,7 +138,6 @@ class GtpClient {
     }
 
     onStdoutData(data) {
-        console.log(data);
         const match = data.match(/^(=|\?)([0-9]+)?(.*)/);
         if (!match)
             return
