@@ -1,9 +1,10 @@
 /* global exports */
 
 const { coord2move } = require('./gtp-util.js');
-const { InvalidConfiguration, GtpClient } = require('./gtp.js');
+const { InvalidConfiguration } = require('./gtp-client.js');
+const { GtpHelper } = require('./gtp-helper.js');
 
-class GtpLeela extends GtpClient {
+class GtpLeela extends GtpHelper {
     static init() {
         super.init();
         this.WORK_DIR = process.env.PWD;
@@ -13,6 +14,19 @@ class GtpLeela extends GtpClient {
         this.COMMAND = process.env.LEELA_PATH;
         this.OPTIONS = ['--gtp'];
     }
+
+    execCommand(cmdStr, stderrExecutor) {
+        const promise = super.execCommand(cmdStr);
+        console.log(promise, stderrExecutor);
+        return stderrExecutor ?
+            Promise.all([new Promise(stderrExecutor), promise]) :
+            promise;
+    }
+
+    genmove() {
+        return Promise.all(new Promise(this.genmoveStderrExecutor.bind(this)), super.genmove());
+    }
+
     genmoveStderrExecutor(res, rej) {
         const variations = [];
         let mcFlag = false;

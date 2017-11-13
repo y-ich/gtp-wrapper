@@ -1,7 +1,7 @@
 /* global exports */
 
 const { move2coord, coord2move } = require('./gtp-util.js');
-const { InvalidConfiguration, GtpClient } = require('./gtp.js');
+const { InvalidConfiguration, GtpClient } = require('./gtp-client.js');
 const { GtpLeela } = require('./gtp-leela.js');
 const { GtpRay } = require('./gtp-ray.js');
 

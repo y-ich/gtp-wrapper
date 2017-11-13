@@ -1,7 +1,7 @@
 /* global exports */
 
 const { coord2move } = require('./gtp-util.js');
-const { InvalidConfiguration, GtpClient } = require('./gtp.js');
+const { InvalidConfiguration, GtpClient } = require('./gtp-client.js');
 
 class GtpRay extends GtpClient {
     static init() {
