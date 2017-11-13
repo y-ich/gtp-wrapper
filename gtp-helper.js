@@ -94,16 +94,16 @@ class GtpHelper extends GtpClient {
 
     async loadSgf(sgf, options = [], timeout = 0) {
         const [root] = jssgf.fastParse(sgf);
-        const size = parseInt(root.SZ || '19');
+        this.size = parseInt(root.SZ || '19');
         const komi = parseFloat(root.KM || '0');
-        const handicaps = root.AB ? root.AB.map(x => move2coord(x, size)) : null
+        const handicaps = root.AB ? root.AB.map(x => move2coord(x, this.size)) : null
         await this.start(options, timeout);
-        await this.setConditions(size, handicaps, komi);
+        await this.setConditions(this.size, handicaps, komi);
         let node = root._children[0];
         while (node) {
             const move = node.B != null ? node.B : node.W; // ''はそのままmoveに代入しなければいけない
             if (move != null) {
-                await this.play(move2coord(move, size));
+                await this.play(move2coord(move, this.size));
             }
             node = node._children[0];
         }
@@ -138,10 +138,28 @@ class GtpHelper extends GtpClient {
         return value;
     }
 
-    genmove() {
-        return super.genmove(this.turn);
+    async genmove() {
+        const value = await super.genmove(this.turn);
+        this.changeTurn();
+        return value;
     }
 
+    async genmoveWithInfo() {
+        const [info, response] = await Promise.all([new Promise(this.genmoveStderrExecutor.bind(this)), this.genmove()]);
+        const { result } = response;
+        let res;
+        if (/resign/.test(result)) {
+            res = { move: 'resign' };
+        } else {
+            const match = result.match(/^(pass|PASS|[a-zA-Z][0-9]{1,2})/);
+            if (match) {
+                res = { move: match[1].toUpperCase() };
+            } else {
+                throw result
+            }
+        }
+        return Object.assign(res, info);
+    }
 }
 
 exports.GtpHelper = GtpHelper;

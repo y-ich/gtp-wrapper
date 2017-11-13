@@ -1,9 +1,10 @@
 /* global exports */
 
 const { coord2move } = require('./gtp-util.js');
-const { InvalidConfiguration, GtpClient } = require('./gtp-client.js');
+const { InvalidConfiguration } = require('./gtp-client.js');
+const { GtpHelper } = require('./gtp-helper.js');
 
-class GtpRay extends GtpClient {
+class GtpRay extends GtpHelper {
     static init() {
         super.init();
         this.WORK_DIR = process.env.PWD;

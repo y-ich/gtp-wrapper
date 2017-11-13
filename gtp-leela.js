@@ -15,13 +15,6 @@ class GtpLeela extends GtpHelper {
         this.OPTIONS = ['--gtp'];
     }
 
-    async genmove() {
-        const promise = new Promise(this.genmoveStderrExecutor.bind(this));
-        const result = await super.genmove();
-        const info = await promise;
-        return [info, result];
-    }
-
     genmoveStderrExecutor(res, rej) {
         const variations = [];
         let mcFlag = false;
