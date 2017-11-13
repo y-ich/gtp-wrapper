@@ -15,22 +15,18 @@ class GtpLeela extends GtpHelper {
         this.OPTIONS = ['--gtp'];
     }
 
-    execCommand(cmdStr, stderrExecutor) {
-        const promise = super.execCommand(cmdStr);
-        console.log(promise, stderrExecutor);
-        return stderrExecutor ?
-            Promise.all([new Promise(stderrExecutor), promise]) :
-            promise;
-    }
-
-    genmove() {
-        return Promise.all(new Promise(this.genmoveStderrExecutor.bind(this)), super.genmove());
+    async genmove() {
+        const promise = new Promise(this.genmoveStderrExecutor.bind(this));
+        const result = await super.genmove();
+        const info = await promise;
+        return [info, result];
     }
 
     genmoveStderrExecutor(res, rej) {
         const variations = [];
         let mcFlag = false;
-        this.genmoveStderrHandler = line => {
+        this.stderrHandler = line => {
+            console.log(line);
             if (/book moves/.test(line)) {
                 res({ comment: 'book moves' });
             } else if (/^MC winrate=/.test(line)) {
