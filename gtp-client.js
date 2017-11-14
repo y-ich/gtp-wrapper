@@ -60,7 +60,6 @@ class GtpClient {
     }
 
     execCommand(cmdStr) {
-        console.log(cmdStr);
         return new Promise((resolve, reject) => {
             if (!this.process) {
                 reject(`no gtp processes(${cmdStr})`);

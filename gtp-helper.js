@@ -146,19 +146,10 @@ class GtpHelper extends GtpClient {
 
     async genmoveWithInfo() {
         const [info, response] = await Promise.all([new Promise(this.genmoveStderrExecutor.bind(this)), this.genmove()]);
-        const { result } = response;
-        let res;
-        if (/resign/.test(result)) {
-            res = { move: 'resign' };
-        } else {
-            const match = result.match(/^(pass|PASS|[a-zA-Z][0-9]{1,2})/);
-            if (match) {
-                res = { move: match[1].toUpperCase() };
-            } else {
-                throw result
-            }
+        if (/^pass|[a-z][0-9]{1,2}$/.test(response.result)) {
+            response.result = response.result.toUpperCase();
         }
-        return Object.assign(res, info);
+        return Object.assign(response, info);
     }
 }
 
