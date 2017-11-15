@@ -1,6 +1,6 @@
 {
   "name": "gtp-wrapper",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "a wrapper for GTP client",
   "main": "index.js",
   "scripts": {
