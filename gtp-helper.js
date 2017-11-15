@@ -84,7 +84,7 @@ class GtpHelper extends GtpClient {
         if (byoyomi) {
             await this.timeSettings(0, byoyomi, 1);
         }
-        const value = await this.genmoveWithIfo();
+        const value = await this.genmoveWithInfo();
         if (value && value.move && format === 'sgf') {
             value.move = coord2move(value.move, this.size);
         }
