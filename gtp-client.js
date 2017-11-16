@@ -1,162 +1,156 @@
 /* global exports */
 
-const { execFile } = require('child_process');
-const byline = require('byline');
+const jssgf = require('jssgf');
+const { move2coord, coord2move } = require('./gtp-util.js');
+const { GtpBase } = require('./gtp-base.js');
 
 
-class InvalidConfiguration extends Error {
-}
-
-/* GtpClient - ベースクラス */
-class GtpClient {
-    constructor(command, options, workDir, cmdIndex = false) {
-        this.cmdIndex = cmdIndex;
-        this.process = null;
-        this.commandHandler = null;
-        this.stderrHandler = null;
-        this.id = 1;
+class CancelableJob {
+    constructor() {
+        this.cancelFlag = false;
+        this.terminable = null;
     }
-
-    start(command, options, workDir, timeout = 0) {
-        this.process = execFile(command, options, {
-            cwd: workDir,
-            env: process.env,
-            timeout: timeout
-        });
-        this.process.on('error', function(err) {
-            console.log('GtpClient error event', err);
-            if (this.commandHandler) {
-                // もしコマンド実行中にexitしたらそのプロミスをrejectする
-                this.commandHandler.reject(err);
-            }
-            if (this.exitHandler) {
-                this.exitHandler.reject(err);
-            }
-        });
-        this.process.on('exit', (code, signal) => {
-            if (this.commandHandler) {
-                // もしコマンド実行中にexitしたらそのプロミスをrejectする
-                this.commandHandler.reject({ code, signal });
-            }
-            if (this.exitHandler) {
-                this.exitHandler.resolve({ code, signal });
-            }
-            this.process = null;
-        });
-        this.process.on('close', (code, signal) => {
-            // 処理はexitイベントで行う
-            console.log('GtpClient close event', code, signal);
-        });
-        this.process.on('disconnect', () => {
-            console.log('GtpClient disconnect event');
-        });
-        this.process.on('message', (message, sendHandle) => {
-            console.log('GtpClient message event', message);
-        });
-        const stdout = byline.createStream(this.process.stdout);
-        const stderr = byline.createStream(this.process.stderr);
-        stdout.on('data', this.onStdoutData.bind(this));
-        stderr.on('data', this.onStderrData.bind(this));
-    }
-
-    execCommand(cmdStr) {
-        return new Promise((resolve, reject) => {
-            if (!this.process) {
-                reject(`no gtp processes(${cmdStr})`);
-                return;
-            }
-            this.commandHandler = { resolve, reject };
-            if (this.cmdIndex)
-                this.process.stdin.write(this.id + ' ');
-            this.process.stdin.write(cmdStr + '\n');
-            this.id += 1;
-        });
-    }
-
-    boardsize(size) {
-        return this.execCommand(`boardsize ${size}`);
-    }
-
-    setFreeHandicap(handicaps) {
-        return this.execCommand(`set_free_handicap ${handicaps.join(' ')}`);
-    }
-
-    komi(komi) {
-        return this.execCommand(`komi ${komi}`);
-    }
-
-    timeSettings(mainTime, byoyomiTime, byoyomiStones) {
-        return this.execCommand(`time_settings ${mainTime} ${byoyomiTime} ${byoyomiStones}`);
-    }
-
-    kgsTimeSettings(system, mainTime, option1, option2) {
-        let cmd = 'kgs-time_settings ';
-        switch (system) {
-        case 'none':
-            cmd += system;
-            break;
-        case 'absolute':
-            cmd += `${system} ${mainTime}`;
-            break;
-        default:
-            cmd += `${system} ${mainTime} ${option1} ${option2}`
-        }
-        return this.execCommand(cmd);
-    }
-
-    play(turn, coord) {
-        return this.execCommand(`play ${turn} ${coord}`);
-    }
-
-    genmove(turn) {
-        return this.execCommand(`genmove ${turn}`);
-    }
-
-    quit() {
-        return new Promise((resolve, reject) => {
-            this.exitHandler = { resolve, reject };
-            this.execCommand('quit');
-        });
-    }
-
-    terminate() {
-        return new Promise((resolve, reject) => {
-            if (!this.process) {
-                resolve();
-                return
-            }
-            this.exitHandler = { resolve, reject };
-            this.process.kill('SIGINT');
-        });
-    }
-
-    onStderrData(data) {
-        if (this.stderrHandler) {
-            this.stderrHandler(data);
-        }
-    }
-
-    onStdoutData(data) {
-        const match = data.match(/^(=|\?)([0-9]+)?(.*)/);
-        if (!match)
-            return
-        if (this.commandHandler) {
-            switch (match[1]) {
-            case '=':
-                this.commandHandler.resolve({
-                    id: match[2],
-                    result: match[3].trim()
-                });
-                break;
-            default:
-                this.commandHandler.reject({
-                    id: match[2],
-                    reason: match[3].trim()
-                });
-            }
+    async cancel() {
+        this.cancelFlag = true;
+        if (this.terminable) {
+            await this.terminable.terminate();
         }
     }
 }
 
-exports.InvalidConfiguration = InvalidConfiguration;
+
+/* GtpBase - ベースクラス */
+class GtpClient extends GtpBase {
+    static init() {
+        this.WORK_DIR = ''; // サブクラスで定義すること
+        this.COMMAND = ''; // サブクラスで定義すること
+        this.OPTIONS = []; // サブクラスで定義すること
+        this.LOG = false;
+        this.currentPromise = Promise.resolve();
+        this.CONNECTION_RELATED_JOBS = {};
+    }
+
+    static async cancelById(id) {
+        if (id in this.CONNECTION_RELATED_JOBS) {
+            await this.CONNECTION_RELATED_JOBS[id].cancel();
+        }
+    }
+
+    static nextMove(id, sgf, byoyomi, format = "gtp", options = []) {
+        const cancelableJob = new CancelableJob();
+        this.CONNECTION_RELATED_JOBS[id] = cancelableJob;
+        const next = () => {
+            if (cancelableJob.cancelFlag) {
+                return Promise.reject('canceled');
+            } else {
+                const result = this.genmoveFrom(sgf, byoyomi, format, options);
+                cancelableJob.terminable = result.instance;
+                return result.promise;
+            }
+        }
+        this.currentPromise = this.currentPromise.then(next, next);
+        return this.currentPromise;
+    }
+
+    /**
+     * MyClass のインスタンスを操作し、何かを返します。
+     * @param {timeSettings} function client, size, handicapsを引数に取り、clientに
+     *     GTPコマンドを送って時間設定を行う関数
+     */
+    static genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0) {
+        let instance = new this();
+        return {
+            instance,
+            promise: instance.genmoveFrom(sgf, byoyomi, format, options, timeout)
+        };
+    }
+
+    constructor(cmdIndex = false) {
+        super();
+        this.size = 19;
+        this.genmoveStderrHandler = null;
+    }
+
+    start(options = [], timeout = 0) {
+        return super.start(
+            this.constructor.COMMAND,
+            this.constructor.OPTIONS.concat(options),
+            this.constructor.WORK_DIR,
+            timeout);
+    }
+
+    async genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0) {
+        await this.loadSgf(sgf, options, timeout);
+        if (byoyomi) {
+            await this.timeSettings(0, byoyomi, 1);
+        }
+        const value = await this.genmoveWithInfo();
+        if (value && value.move && format === 'sgf') {
+            value.move = coord2move(value.move, this.size);
+        }
+        await this.quit();
+        return value;
+    }
+
+    async loadSgf(sgf, options = [], timeout = 0) {
+        const [root] = jssgf.fastParse(sgf);
+        this.size = parseInt(root.SZ || '19');
+        const komi = parseFloat(root.KM || '0');
+        const handicaps = root.AB ? root.AB.map(x => move2coord(x, this.size)) : null
+        await this.start(options, timeout);
+        await this.setConditions(this.size, handicaps, komi);
+        let node = root._children[0];
+        while (node) {
+            const move = node.B != null ? node.B : node.W; // ''はそのままmoveに代入しなければいけない
+            if (move != null) {
+                await this.play(move2coord(move, this.size));
+            }
+            node = node._children[0];
+        }
+    }
+
+    async setConditions(size, handicaps, komi) {
+        await this.boardsize(size);
+        if (handicaps) {
+            await this.setFreeHandicap(handicaps);
+            komi = komi != null ? komi : 0;
+            this.turn = 'white';
+        } else {
+            this.turn = 'black';
+        }
+        if (komi != null) {
+            await this.komi(komi);
+        }
+    }
+
+    changeTurn() {
+        this.turn = this.turn === 'black' ? 'white' : 'black';
+    }
+
+    boardsize(size = 19) {
+        this.size = size;
+        return super.boardsize(size);
+    }
+
+    async play(coord) {
+        const value = await super.play(this.turn, coord);
+        this.changeTurn();
+        return value;
+    }
+
+    async genmove() {
+        const value = await super.genmove(this.turn);
+        this.changeTurn();
+        return value;
+    }
+
+    async genmoveWithInfo() {
+        const [info, response] = await Promise.all([new Promise(this.genmoveStderrExecutor.bind(this)), this.genmove()]);
+        if (/^pass|[a-z][0-9]{1,2}$/.test(response.result)) {
+            response.result = response.result.toUpperCase();
+        }
+        return Object.assign(response, info);
+    }
+}
+
 exports.GtpClient = GtpClient;
