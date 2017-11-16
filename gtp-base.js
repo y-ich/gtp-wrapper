@@ -59,7 +59,10 @@ class GtpBase {
         stderr.on('data', this.onStderrData.bind(this));
     }
 
-    execCommand(cmdStr) {
+    execCommand(cmdStr, stderrHandler) {
+        if (stderrHandler) {
+            this._stderrHandler = stderrHandler;
+        }
         return new Promise((resolve, reject) => {
             if (!this.process) {
                 reject(`no gtp processes(${cmdStr})`);
@@ -104,12 +107,16 @@ class GtpBase {
         return this.execCommand(cmd);
     }
 
-    play(turn, coord) {
-        return this.execCommand(`play ${turn} ${coord}`);
+    play(turn, coord, stderrHandler) {
+        return this.execCommand(`play ${turn} ${coord}`, stderrHandler);
     }
 
-    genmove(turn) {
-        return this.execCommand(`genmove ${turn}`);
+    genmove(turn, stderrHandler) {
+        const response = this.execCommand(`genmove ${turn}`, stderrHandler);
+        if (/^pass|[a-z][0-9]{1,2}$/.test(response.result)) {
+            response.result = response.result.toUpperCase();
+        }
+        return response;
     }
 
     quit() {
@@ -131,8 +138,8 @@ class GtpBase {
     }
 
     onStderrData(data) {
-        if (this.stderrHandler) {
-            this.stderrHandler(data);
+        if (this._stderrHandler) {
+            this._stderrHandler(data);
         }
     }
 

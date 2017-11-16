@@ -19,7 +19,6 @@ class CancelableJob {
 }
 
 
-/* GtpBase - ベースクラス */
 class GtpClient extends GtpBase {
     static init() {
         this.WORK_DIR = ''; // サブクラスで定義すること
@@ -132,23 +131,20 @@ class GtpClient extends GtpBase {
         return super.boardsize(size);
     }
 
-    async play(coord) {
-        const value = await super.play(this.turn, coord);
+    async play(coord, stderrHandler) {
+        const value = await super.play(this.turn, coord, stderrHandler);
         this.changeTurn();
         return value;
     }
 
-    async genmove() {
-        const value = await super.genmove(this.turn);
+    async genmove(stderrHandler) {
+        const value = await super.genmove(this.turn, stderrHandler);
         this.changeTurn();
         return value;
     }
 
     async genmoveWithInfo() {
         const [info, response] = await Promise.all([new Promise(this.genmoveStderrExecutor.bind(this)), this.genmove()]);
-        if (/^pass|[a-z][0-9]{1,2}$/.test(response.result)) {
-            response.result = response.result.toUpperCase();
-        }
         return Object.assign(response, info);
     }
 }
