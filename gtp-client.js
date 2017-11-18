@@ -56,11 +56,11 @@ class GtpClient extends GtpBase {
      * @param {timeSettings} function client, size, handicapsを引数に取り、clientに
      *     GTPコマンドを送って時間設定を行う関数
      */
-    static genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0) {
+    static genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0, stderrHandler) {
         let instance = new this();
         return {
             instance,
-            promise: instance.genmoveFrom(sgf, byoyomi, format, options, timeout)
+            promise: instance.genmoveFrom(sgf, byoyomi, format, options, timeout, stderrHandler)
         };
     }
 
@@ -78,12 +78,12 @@ class GtpClient extends GtpBase {
             timeout);
     }
 
-    async genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0) {
+    async genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0, stderrHandler) {
         await this.loadSgf(sgf, options, timeout);
         if (byoyomi) {
             await this.timeSettings(0, byoyomi, 1);
         }
-        const value = await this.genmoveWithInfo();
+        const value = await this.genmove(stderrHandler);
         if (value && value.move && format === 'sgf') {
             value.move = coord2move(value.move, this.size);
         }
@@ -144,8 +144,7 @@ class GtpClient extends GtpBase {
     }
 
     async genmoveWithInfo() {
-        const [info, response] = await Promise.all([new Promise(this.genmoveStderrExecutor.bind(this)), this.genmove()]);
-        return Object.assign(response, info);
+        throw new Error('deprecated');
     }
 }
 
