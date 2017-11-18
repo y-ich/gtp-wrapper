@@ -15,6 +15,14 @@ class GtpLeela extends GtpClient {
         this.OPTIONS = ['--gtp'];
     }
 
+    start(options = [], timeout = 0) {
+        return super.start(
+            this.constructor.COMMAND,
+            this.constructor.OPTIONS.concat(options),
+            this.constructor.WORK_DIR,
+            timeout);
+    }
+
     async play(coord) {
         this.info = {
             winRate: null,
@@ -25,14 +33,17 @@ class GtpLeela extends GtpClient {
         return Object.assign(value, this.info);
     }
 
-    async genmove() {
+    async genmove(stderrHandler) {
         this.info = {
             comment: null,
             winRate: null,
             pv: null,
             variations: []
         };
-        const value = await super.genmove(this.genmoveStderrHandler);
+        const value = await super.genmove(stderrHandler ? line => {
+            this.genmoveStderrHandler(line);
+            stderrHandler.call(this, line);
+        } : this.genmoveStderrHandler);
         return Object.assign(value, this.info);
     }
 

@@ -9,7 +9,7 @@ class InvalidConfiguration extends Error {
 
 /* GtpBase - ベースクラス */
 class GtpBase {
-    constructor(command, options, workDir, cmdIndex = false) {
+    constructor(cmdIndex = false) {
         this.cmdIndex = cmdIndex;
         this.process = null;
         this.commandHandler = null;

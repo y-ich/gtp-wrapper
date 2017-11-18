@@ -21,10 +21,6 @@ class CancelableJob {
 
 class GtpClient extends GtpBase {
     static init() {
-        this.WORK_DIR = ''; // サブクラスで定義すること
-        this.COMMAND = ''; // サブクラスで定義すること
-        this.OPTIONS = []; // サブクラスで定義すること
-        this.LOG = false;
         this.currentPromise = Promise.resolve();
         this.CONNECTION_RELATED_JOBS = {};
     }
@@ -65,17 +61,8 @@ class GtpClient extends GtpBase {
     }
 
     constructor(cmdIndex = false) {
-        super();
+        super(cmdIndex);
         this.size = 19;
-        this.genmoveStderrHandler = null;
-    }
-
-    start(options = [], timeout = 0) {
-        return super.start(
-            this.constructor.COMMAND,
-            this.constructor.OPTIONS.concat(options),
-            this.constructor.WORK_DIR,
-            timeout);
     }
 
     async genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0, stderrHandler) {
@@ -141,10 +128,6 @@ class GtpClient extends GtpBase {
         const value = await super.genmove(this.turn, stderrHandler);
         this.changeTurn();
         return value;
-    }
-
-    async genmoveWithInfo() {
-        throw new Error('deprecated');
     }
 }
 
