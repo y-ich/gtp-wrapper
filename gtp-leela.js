@@ -15,14 +15,6 @@ class GtpLeela extends GtpClient {
         this.OPTIONS = ['--gtp'];
     }
 
-    start(options = [], timeout = 0) {
-        return super.start(
-            this.constructor.COMMAND,
-            this.constructor.OPTIONS.concat(options),
-            this.constructor.WORK_DIR,
-            timeout);
-    }
-
     async play(coord) {
         this.info = {
             winRate: null,

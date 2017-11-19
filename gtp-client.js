@@ -21,6 +21,11 @@ class CancelableJob {
 
 class GtpClient extends GtpBase {
     static init() {
+        /* 以下の3つの定数は後てユーザーが定義すること */
+        this.WORK_DIR = null;
+        this.COMMAND = null;
+        this.OPTIONS = [];
+        
         this.currentPromise = Promise.resolve();
         this.CONNECTION_RELATED_JOBS = {};
     }
@@ -63,6 +68,14 @@ class GtpClient extends GtpBase {
     constructor(cmdIndex = false) {
         super(cmdIndex);
         this.size = 19;
+    }
+
+    start(options = [], timeout = 0) {
+        return super.start(
+            this.constructor.COMMAND,
+            this.constructor.OPTIONS.concat(options),
+            this.constructor.WORK_DIR,
+            timeout);
     }
 
     async genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0, stderrHandler) {
