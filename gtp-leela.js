@@ -1,17 +1,19 @@
-/* global exports */
+/* global exports __dirname */
 
 const { coord2move } = require('./gtp-util.js');
-const { InvalidConfiguration } = require('./gtp-base.js');
 const { GtpClient } = require('./gtp-client.js');
 
 class GtpLeela extends GtpClient {
     static init() {
         super.init();
-        this.WORK_DIR = process.env.PWD;
-        if (!process.env.LEELA_PATH) {
-            throw new InvalidConfiguration('no LEELA_PATH');
-        }
-        this.COMMAND = process.env.LEELA_PATH;
+        this.WORK_DIR = './';
+        this.COMMAND = __dirname + '/Leela0110GTP/' + (function() {
+            switch (process.platform) {
+                case 'linux': return 'leela_0110_linux_x64';
+                case 'darwin': return 'leela_0110_macOS';
+                default: throw new Error('not-supported');
+            }
+        })();
         this.OPTIONS = ['--gtp'];
     }
 
