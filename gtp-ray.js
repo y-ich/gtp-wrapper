@@ -39,7 +39,7 @@ class GtpRay extends GtpClient {
 
 try {
     GtpRay.init();
-} catch(e) {
+} catch (e) {
     console.log(e.reason);
 }
 

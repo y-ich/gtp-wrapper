@@ -72,8 +72,8 @@ class GtpLeela extends GtpClient {
 
 try {
     GtpLeela.init();
-} catch(e) {
-    console.log(e.reason);
+} catch (e) {
+    console.log(e.message);
 }
 
 exports.GtpLeela = GtpLeela;
