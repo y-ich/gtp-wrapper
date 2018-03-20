@@ -6,20 +6,21 @@ const { GtpClient } = require('./gtp-client.js');
 class GtpLeela extends GtpClient {
     static init() {
         super.init();
-        this.WORK_DIR = './';
-        this.COMMAND = __dirname + '/Leela0110GTP/' + (function() {
-            switch (process.platform) {
-                case 'linux':
-                if (process.env.LEELA_GPU) {
-                    return 'leela_0110_linux_x64_opencl';
-                } else {
-                    return 'leela_0110_linux_x64';
+        if (process.env.LEELA === 'leelaz') {
+            this.WORK_DIR = __dirname + '/Leela-Zero/';
+            this.COMMAND = './leelaz';
+            this.OPTIONS = ['-w', 'weights.txt'];
+        } else {
+            this.WORK_DIR = __dirname + '/Leela0110GTP/';
+            this.COMMAND = './' + (function() {
+                switch (process.platform) {
+                    case 'linux': return 'leela_0110_linux_x64';
+                    case 'darwin': return 'leela_0110_macOS';
+                    default: throw new Error('not-supported');
                 }
-                case 'darwin': return 'leela_0110_macOS';
-                default: throw new Error('not-supported');
-            }
-        })();
-        this.OPTIONS = ['--gtp'];
+            })() + (process.env.LEELA === 'opencl' ? '_opencl' : '');
+            this.OPTIONS = ['--gtp'];
+        }
     }
 
     async play(coord) {
