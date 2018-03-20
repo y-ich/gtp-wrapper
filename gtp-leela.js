@@ -9,7 +9,12 @@ class GtpLeela extends GtpClient {
         this.WORK_DIR = './';
         this.COMMAND = __dirname + '/Leela0110GTP/' + (function() {
             switch (process.platform) {
-                case 'linux': return 'leela_0110_linux_x64';
+                case 'linux':
+                if (process.env.LEELA_GPU) {
+                    return 'leela_0110_linux_x64_opencl';
+                } else {
+                    return 'leela_0110_linux_x64';
+                }
                 case 'darwin': return 'leela_0110_macOS';
                 default: throw new Error('not-supported');
             }
