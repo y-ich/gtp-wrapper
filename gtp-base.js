@@ -18,6 +18,7 @@ class GtpBase {
     }
 
     start(command, options, workDir, timeout = 0) {
+        console.log(command, options, workDir);
         this.process = execFile(command, options, {
             cwd: workDir,
             env: process.env,
