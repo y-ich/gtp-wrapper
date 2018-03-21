@@ -9,7 +9,7 @@ class GtpLeela extends GtpClient {
         if (process.env.LEELA === 'leelaz') {
             this.WORK_DIR = __dirname + '/Leela-Zero/';
             this.COMMAND = './leelaz';
-            this.OPTIONS = ['-w', 'weights.txt'];
+            this.OPTIONS = ['-g', '-w', 'weights.txt'];
         } else {
             this.WORK_DIR = __dirname + '/Leela0110GTP/';
             this.COMMAND = './' + (function() {
