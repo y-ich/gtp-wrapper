@@ -152,7 +152,7 @@ class GtpLeelaZero19 extends GtpLeelaZero {
                 default: throw new Error('not-supported');
             }
         })();
-        this.OPTIONS = ['-g', '-w', 'weights.txt'];
+        this.OPTIONS = ['-g', '-w', process.env.LZ19_WEIGHTS || __dirname + '/private/weights19.txt'];
     }
 }
 
