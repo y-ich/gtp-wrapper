@@ -1,12 +1,12 @@
 /* global exports __dirname */
-
+const path = require('path');
 const { coord2move } = require('./gtp-util.js');
 const { GtpClient } = require('./gtp-client.js');
 
 class GtpLeela extends GtpClient {
     static init() {
         super.init();
-        this.WORK_DIR = __dirname + '/Leela0110GTP/';
+        this.WORK_DIR = path.join(__dirname, 'Leela0110GTP');
         this.COMMAND = './' + (function() {
             switch (process.platform) {
                 case 'linux': return 'leela_0110_linux_x64';
@@ -67,6 +67,15 @@ class GtpLeela extends GtpClient {
         } else {
             this.playStderrHandler(line);
         }
+    }
+
+    parseDump(line) {
+        const match = line.match(/^Nodes: ([0-9]+), Win: ([.0-9]+)%.*, PV:((?:\s[A-Z][0-9]{1,2})+)/);
+        return match ? {
+            nodes: parseInt(match[1]),
+            winrate: parseFloat(match[2]),
+            pv: match[3].trim().split(/\s+/)
+        } : null;
     }
 }
 
@@ -139,12 +148,21 @@ class GtpLeelaZero extends GtpClient {
     genmoveStderrHandler(line) {
         this.playStderrHandler(line);
     }
+
+    parseDump(line) {
+        const match = line.match(/^Playouts: ([0-9]+), Win: ([.0-9]+)%.*, PV:((?:\s[A-Z][0-9]{1,2})+)/);
+        return match ? {
+            nodes: parseInt(match[1]),
+            winrate: parseFloat(match[2]),
+            pv: match[3].trim().split(/\s+/)
+        } : null;
+    }
 }
 
 class GtpLeelaZero19 extends GtpLeelaZero {
     static init() {
         super.init();
-        this.WORK_DIR = __dirname + '/Leela-Zero/';
+        this.WORK_DIR = path.join(__dirname, 'Leela-Zero');
         this.COMMAND = './' + (function() {
             switch (process.platform) {
                 case 'linux': return 'leelaz';
@@ -152,14 +170,14 @@ class GtpLeelaZero19 extends GtpLeelaZero {
                 default: throw new Error('not-supported');
             }
         })();
-        this.OPTIONS = ['-g', '-w', process.env.LZ19_WEIGHTS || __dirname + '/private/weights19.txt'];
+        this.OPTIONS = ['-g', '-w', process.env.LZ19_WEIGHTS || path.join(__dirname, 'private/weights19.txt')];
     }
 }
 
 class GtpLeelaZero9 extends GtpLeelaZero {
     static init() {
         super.init();
-        this.WORK_DIR = __dirname + '/Leela-Zero9/';
+        this.WORK_DIR = path.join(__dirname, 'Leela-Zero9');
         this.COMMAND = './' + (function() {
             switch (process.platform) {
                 case 'linux': return 'leelaz';
