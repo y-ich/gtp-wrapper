@@ -69,7 +69,7 @@ class GtpLeela extends GtpClient {
         }
     }
 
-    parseDump(line) {
+    static parseDump(line) {
         const match = line.match(/^Nodes: ([0-9]+), Win: ([.0-9]+)%.*, PV:((?:\s[A-Z][0-9]{1,2})+)/);
         return match ? {
             nodes: parseInt(match[1]),
@@ -149,7 +149,7 @@ class GtpLeelaZero extends GtpClient {
         this.playStderrHandler(line);
     }
 
-    parseDump(line) {
+    static parseDump(line) {
         const match = line.match(/^Playouts: ([0-9]+), Win: ([.0-9]+)%.*, PV:((?:\s[A-Z][0-9]{1,2})+)/);
         return match ? {
             nodes: parseInt(match[1]),
