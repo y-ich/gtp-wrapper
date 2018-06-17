@@ -18,7 +18,6 @@ class GtpBase {
     }
 
     start(command, options, workDir, timeout = 0) {
-        console.log(command, options, workDir);
         this.process = execFile(command, options, {
             cwd: workDir,
             env: process.env,
@@ -27,11 +26,14 @@ class GtpBase {
         this.process.on('error', function(err) {
             console.log('GtpBase error event', err);
             if (this.commandHandler) {
-                // もしコマンド実行中にexitしたらそのプロミスをrejectする
+                // もしコマンド実行中ならそのプロミスをrejectする
                 this.commandHandler.reject(err);
             }
             if (this.exitHandler) {
                 this.exitHandler.reject(err);
+            }
+            if (!this.commandHandler && !this.exitHandler) {
+                throw err;
             }
         });
         this.process.on('exit', (code, signal) => {

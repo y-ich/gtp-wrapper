@@ -1,6 +1,6 @@
 {
   "name": "gtp-wrapper",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "description": "a wrapper for GTP client",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,6 @@
   "homepage": "https://github.com/y-ich/gtp-wrapper#readme",
   "dependencies": {
     "byline": "^5.0.0",
-    "jssgf": "^0.3.7"
+    "jssgf": "^0.3.8"
   }
 }

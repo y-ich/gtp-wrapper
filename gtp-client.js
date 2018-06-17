@@ -1,5 +1,4 @@
 /* global exports */
-
 const jssgf = require('jssgf');
 const { move2coord, coord2move } = require('./gtp-util.js');
 const { GtpBase } = require('./gtp-base.js');
@@ -20,11 +19,14 @@ class CancelableJob {
 
 
 class GtpClient extends GtpBase {
+    /**
+     * GtpClientのサブクラスは使用前にinitをコールすること
+     */
     static init() {
-        /* 以下の3つの定数は後てユーザーが定義すること */
-        this.WORK_DIR = null;
-        this.COMMAND = null;
-        this.OPTIONS = [];
+        /* 以下の3つの定数は後でユーザーが定義するかサブクラスのinitが定義すること */
+        this.prototype.WORK_DIR = null;
+        this.prototype.COMMAND = null;
+        this.prototype.OPTIONS = [];
         
         this.currentPromise = Promise.resolve();
         this.CONNECTION_RELATED_JOBS = {};
@@ -72,9 +74,9 @@ class GtpClient extends GtpBase {
 
     start(options = [], timeout = 0) {
         return super.start(
-            this.constructor.COMMAND,
-            this.constructor.OPTIONS.concat(options),
-            this.constructor.WORK_DIR,
+            this.COMMAND,
+            this.OPTIONS.concat(options),
+            this.WORK_DIR,
             timeout);
     }
 

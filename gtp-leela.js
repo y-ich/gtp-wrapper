@@ -1,20 +1,16 @@
-/* global exports __dirname */
-const path = require('path');
+/* global exports */
 const { coord2move } = require('./gtp-util.js');
 const { GtpClient } = require('./gtp-client.js');
 
 class GtpLeela extends GtpClient {
-    static init() {
+    static init(workDir, command, options) {
         super.init();
-        this.WORK_DIR = path.join(__dirname, 'Leela0110GTP');
-        this.COMMAND = './' + (function() {
-            switch (process.platform) {
-                case 'linux': return 'leela_0110_linux_x64';
-                case 'darwin': return 'leela_0110_macOS';
-                default: throw new Error('not-supported');
-            }
-        })() + (process.env.LEELA === 'opencl' ? '_opencl' : '');
-        this.OPTIONS = ['--gtp'];
+        this.prototype.WORK_DIR = workDir;
+        this.prototype.COMMAND = command;
+        if (!(options.includes('--gtp') || options.includes('-g'))) {
+            options.push('--gtp');
+        }
+        this.prototype.OPTIONS = options;
     }
 
     async play(coord) {
@@ -79,7 +75,18 @@ class GtpLeela extends GtpClient {
     }
 }
 
+/** もしも複数のLeela Zero(19路盤用,9路盤用)を使うなら、このクラスを継承して複数のクラスを作成する */
 class GtpLeelaZero extends GtpClient {
+    static init(workDir, command, options) {
+        super.init();
+        this.prototype.WORK_DIR = workDir;
+        this.prototype.COMMAND = command;
+        if (!(options.includes('--gtp') || options.includes('-g'))) {
+            options.push('--gtp');
+        }
+        this.prototype.OPTIONS = options;
+    }
+
     async play(coord) {
         this.info = {
             comment: null,
@@ -159,44 +166,5 @@ class GtpLeelaZero extends GtpClient {
     }
 }
 
-class GtpLeelaZero19 extends GtpLeelaZero {
-    static init() {
-        super.init();
-        this.WORK_DIR = path.join(__dirname, 'Leela-Zero');
-        this.COMMAND = './' + (function() {
-            switch (process.platform) {
-                case 'linux': return 'leelaz';
-                case 'darwin': return 'leelaz_macOS';
-                default: throw new Error('not-supported');
-            }
-        })();
-        this.OPTIONS = ['-g', '-w', process.env.LZ19_WEIGHTS || path.join(__dirname, 'private/weights19.txt')];
-    }
-}
-
-class GtpLeelaZero9 extends GtpLeelaZero {
-    static init() {
-        super.init();
-        this.WORK_DIR = path.join(__dirname, 'Leela-Zero9');
-        this.COMMAND = './' + (function() {
-            switch (process.platform) {
-                case 'linux': return 'leelaz';
-                case 'darwin': return 'leelaz_macOS';
-                default: throw new Error('not-supported');
-            }
-        })();
-        this.OPTIONS = ['-g', '-w', '20-128-6.5.txt'];
-    }
-}
-
-try {
-    GtpLeela.init();
-    GtpLeelaZero19.init();
-    GtpLeelaZero9.init();
-} catch (e) {
-    console.log(e.message);
-}
-
 exports.GtpLeela = GtpLeela;
-exports.GtpLeelaZero19 = GtpLeelaZero19;
-exports.GtpLeelaZero9 = GtpLeelaZero9;
+exports.GtpLeelaZero = GtpLeelaZero;
