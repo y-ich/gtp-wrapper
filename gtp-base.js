@@ -56,8 +56,8 @@ class GtpBase {
         this.process.on('message', (message, sendHandle) => {
             console.log('GtpBase message event', message);
         });
-        const stdout = byline.createStream(this.process.stdout);
-        const stderr = byline.createStream(this.process.stderr);
+        const stdout = byline.createStream(this.process.stdout, { keepEmptyLines: true });
+        const stderr = byline.createStream(this.process.stderr, { keepEmptyLines: true });
         stdout.on('data', this.onStdoutData.bind(this));
         stderr.on('data', this.onStderrData.bind(this));
     }
@@ -72,6 +72,7 @@ class GtpBase {
                 return;
             }
             this.commandHandler = { resolve, reject };
+            this.response = null;
             if (this.cmdIndex)
                 this.process.stdin.write(this.id + ' ');
             this.process.stdin.write(cmdStr + '\n');
@@ -147,22 +148,34 @@ class GtpBase {
     }
 
     onStdoutData(data) {
-        const match = data.match(/^(=|\?)([0-9]+)?(.*)/);
-        if (!match)
-            return
-        if (this.commandHandler) {
-            switch (match[1]) {
-            case '=':
-                this.commandHandler.resolve({
+        if (!this.commandHandler) {
+            return;
+        }
+        if (this.response) {
+            if (data !== '') {
+                this.reponse.result += '\n' + data;
+            } else if (data === '') {
+                switch (this.response.prompt) {
+                    case '=':
+                    this.commandHandler.resolve(this.response);
+                    break;
+                    case '?':
+                    this.commandHandler.reject(this.response);
+                    break;
+                    default:
+                    this.commandHandler.reject(new Error('illegal format'));
+                }
+            }
+        } else {
+            const match = data.match(/^(=|\?)([0-9]+)?(.*)/);
+            if (match) {
+                this.response = {
+                    prompt: match[1],
                     id: match[2],
                     result: match[3].trim()
-                });
-                break;
-            default:
-                this.commandHandler.reject({
-                    id: match[2],
-                    reason: match[3].trim()
-                });
+                };
+            } else {
+                this.commandHandler.reject(new Error('illegal format'));
             }
         }
     }
