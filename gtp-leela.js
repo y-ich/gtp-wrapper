@@ -23,7 +23,7 @@ class GtpLeela extends GtpClient {
         return Object.assign(value, this.info);
     }
 
-    async genmove(stderrHandler) {
+    async genmove(stderrHandler, stdoutHandler) {
         this.info = {
             comment: null,
             winRate: null,
@@ -33,7 +33,7 @@ class GtpLeela extends GtpClient {
         const value = await super.genmove(stderrHandler ? line => {
             this.genmoveStderrHandler(line);
             stderrHandler.call(this, line);
-        } : this.genmoveStderrHandler);
+        } : this.genmoveStderrHandler, stdoutHandler);
         return Object.assign(value, this.info);
     }
 
@@ -102,7 +102,7 @@ class GtpLeelaZero extends GtpClient {
         return Object.assign(value, this.info);
     }
 
-    async genmove(stderrHandler) {
+    async genmove(stderrHandler, stdoutHandler) {
         this.info = {
             comment: null,
             averageDepth: null,
@@ -116,8 +116,12 @@ class GtpLeelaZero extends GtpClient {
         const value = await super.genmove(stderrHandler ? line => {
             this.genmoveStderrHandler(line);
             stderrHandler.call(this, line);
-        } : this.genmoveStderrHandler);
+        } : this.genmoveStderrHandler, stdoutHandler);
         return Object.assign(value, this.info);
+    }
+
+    lzAnalyze(centisec, stdoutHandler) {
+        return this.execCommand(`lz-analyze ${centisec}`, undefined, stdoutHandler);
     }
 
     playStderrHandler(line) {
@@ -163,6 +167,26 @@ class GtpLeelaZero extends GtpClient {
             winrate: parseFloat(match[2]),
             pv: match[3].trim().split(/\s+/)
         } : null;
+    }
+
+    static parseInfo(line) {
+        const infos = line.split(/(?=info)/);
+        const result = [];
+        for (const info of infos) {
+            const match = info.match(/^info move ([A-Z][0-9]{1,2}) visits ([0-9]+) winrate ([0-9]+) order ([0-9]+) pv((?:\s[A-Z][0-9]{1,2})+)/);
+            if (match) {
+                result.push({
+                    move: match[1],
+                    visits: parseInt(match[2]),
+                    winrate: parseInt(match[3]) / 100,
+                    order: parseInt(match[4]),
+                    pv: match[5].trim().split(/\s+/)
+                });
+            } else {
+                return null;
+            }
+        }
+        return result;
     }
 }
 

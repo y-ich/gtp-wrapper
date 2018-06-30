@@ -12,9 +12,10 @@ class GtpBase {
     constructor(cmdIndex = false) {
         this.cmdIndex = cmdIndex;
         this.process = null;
-        this.commandHandler = null;
+        this.commandHandlers = [];
         this.stderrHandler = null;
         this.id = 1;
+        this.response = null;
     }
 
     start(command, options, workDir, timeout = 0) {
@@ -25,22 +26,24 @@ class GtpBase {
         });
         this.process.on('error', function(err) {
             console.log('GtpBase error event', err);
-            if (this.commandHandler) {
-                // もしコマンド実行中ならそのプロミスをrejectする
-                this.commandHandler.reject(err);
+            if (this.commandHandlers.length === 0 && !this.exitHandler) {
+                throw err;
             }
+            for (const { reject } of this.commandHandlers) {
+                reject(err);
+            }
+            this.commandHandlers = [];
+            this.response = null;
             if (this.exitHandler) {
                 this.exitHandler.reject(err);
             }
-            if (!this.commandHandler && !this.exitHandler) {
-                throw err;
-            }
         });
         this.process.on('exit', (code, signal) => {
-            if (this.commandHandler) {
-                // もしコマンド実行中にexitしたらそのプロミスをrejectする
-                this.commandHandler.reject({ code, signal });
+            for (const { reject } of this.commandHandlers) {
+                reject({ code, signal });
             }
+            this.commandHandlers = [];
+            this.response = null;
             if (this.exitHandler) {
                 this.exitHandler.resolve({ code, signal });
             }
@@ -62,22 +65,28 @@ class GtpBase {
         stderr.on('data', this.onStderrData.bind(this));
     }
 
-    execCommand(cmdStr, stderrHandler) {
-        if (stderrHandler) {
-            this._stderrHandler = stderrHandler;
-        }
+    execCommand(cmdStr, stderrHandler, stdoutHandler) {
+        this._stderrHandler = stderrHandler;
+        this._stdoutHandler = stdoutHandler;
         return new Promise((resolve, reject) => {
             if (!this.process) {
                 reject(`no gtp processes(${cmdStr})`);
                 return;
             }
-            this.commandHandler = { resolve, reject };
-            this.response = null;
+            this.commandHandlers.push({ resolve, reject });
             if (this.cmdIndex)
                 this.process.stdin.write(this.id + ' ');
             this.process.stdin.write(cmdStr + '\n');
             this.id += 1;
         });
+    }
+
+    name() {
+        return this.execCommand('name');
+    }
+
+    knownCommand(cmd) {
+        return this.execCommand(`known_command ${cmd}`);
     }
 
     boardsize(size) {
@@ -115,8 +124,8 @@ class GtpBase {
         return this.execCommand(`play ${turn} ${coord}`, stderrHandler);
     }
 
-    genmove(turn, stderrHandler) {
-        const response = this.execCommand(`genmove ${turn}`, stderrHandler);
+    genmove(turn, stderrHandler, stdoutHandler) {
+        const response = this.execCommand(`genmove ${turn}`, stderrHandler, stdoutHandler);
         if (/^pass|[a-z][0-9]{1,2}$/.test(response.result)) {
             response.result = response.result.toUpperCase();
         }
@@ -148,35 +157,44 @@ class GtpBase {
     }
 
     onStdoutData(data) {
-        if (!this.commandHandler) {
+        if (this._stdoutHandler) {
+            this._stdoutHandler(data);
+        }
+        if (this.commandHandlers.length === 0) {
             return;
         }
-        if (this.response) {
-            if (data !== '') {
-                this.reponse.result += '\n' + data;
-            } else if (data === '') {
-                switch (this.response.prompt) {
-                    case '=':
-                    this.commandHandler.resolve(this.response);
-                    break;
-                    case '?':
-                    this.commandHandler.reject(this.response);
-                    break;
-                    default:
-                    this.commandHandler.reject(new Error('illegal format'));
+        try {
+            if (this.response) {
+                if (data !== '') {
+                    this.response.result += '\n' + data;
+                } else if (data === '') {
+                    const commandHandler = this.commandHandlers.shift();
+                    switch (this.response.prompt) {
+                        case '=':
+                        commandHandler.resolve(this.response);
+                        break;
+                        case '?':
+                        commandHandler.reject(this.response);
+                        break;
+                        default:
+                        commandHandler.reject(new Error('illegal format'));
+                    }
+                    this.response = null;
+                }
+            } else {
+                const match = data.match(/^(=|\?)([0-9]+)?(.*)/);
+                if (match) {
+                    this.response = {
+                        prompt: match[1],
+                        id: match[2],
+                        result: match[3].trim()
+                    };
                 }
             }
-        } else {
-            const match = data.match(/^(=|\?)([0-9]+)?(.*)/);
-            if (match) {
-                this.response = {
-                    prompt: match[1],
-                    id: match[2],
-                    result: match[3].trim()
-                };
-            } else {
-                this.commandHandler.reject(new Error('illegal format'));
-            }
+        } catch (e) {
+            const commandHandler = this.commandHandlers.shift();
+            commandHandler.reject(e);
+            this.response = null;
         }
     }
 }

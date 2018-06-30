@@ -59,11 +59,12 @@ class GtpClient extends GtpBase {
      * @param {timeSettings} function client, size, handicapsを引数に取り、clientに
      *     GTPコマンドを送って時間設定を行う関数
      */
-    static genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0, stderrHandler) {
+    static genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0, stderrHandler, stdoutHandler) {
         let instance = new this();
+        instance.start(options, timeout);
         return {
             instance,
-            promise: instance.genmoveFrom(sgf, byoyomi, format, options, timeout, stderrHandler)
+            promise: instance.genmoveFrom(sgf, byoyomi, format, stderrHandler, stdoutHandler)
         };
     }
 
@@ -80,12 +81,12 @@ class GtpClient extends GtpBase {
             timeout);
     }
 
-    async genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0, stderrHandler) {
-        await this.loadSgf(sgf, options, timeout);
+    async genmoveFrom(sgf, byoyomi = null, format = 'gtp', stderrHandler, stdoutHandler) {
+        await this.loadSgf(sgf);
         if (byoyomi) {
             await this.timeSettings(0, byoyomi, 1);
         }
-        const value = await this.genmove(stderrHandler);
+        const value = await this.genmove(stderrHandler, stdoutHandler);
         if (value && value.move && format === 'sgf') {
             value.move = coord2move(value.move, this.size);
         }
@@ -93,12 +94,11 @@ class GtpClient extends GtpBase {
         return value;
     }
 
-    async loadSgf(sgf, options = [], timeout = 0) {
+    async loadSgf(sgf) {
         const [root] = jssgf.fastParse(sgf);
         this.size = parseInt(root.SZ || '19');
         const komi = parseFloat(root.KM || '0');
         const handicaps = root.AB ? root.AB.map(x => move2coord(x, this.size)) : null
-        await this.start(options, timeout);
         await this.setConditions(this.size, handicaps, komi);
         let node = root._children[0];
         while (node) {
@@ -139,8 +139,8 @@ class GtpClient extends GtpBase {
         return value;
     }
 
-    async genmove(stderrHandler) {
-        const value = await super.genmove(this.turn, stderrHandler);
+    async genmove(stderrHandler, stdoutHandler) {
+        const value = await super.genmove(this.turn, stderrHandler, stdoutHandler);
         this.changeTurn();
         return value;
     }
