@@ -22,7 +22,8 @@ class GtpBase {
         this.process = execFile(command, options, {
             cwd: workDir,
             env: process.env,
-            timeout: timeout
+            timeout: timeout,
+            maxBuffer: 1200 * 18000
         });
         this.process.on('error', function(err) {
             console.log('GtpBase error event', err);
