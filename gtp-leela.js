@@ -173,7 +173,7 @@ class GtpLeelaZero extends GtpClient {
         const infos = line.split(/(?=info)/);
         const result = [];
         for (const info of infos) {
-            const match = info.match(/^info move ([A-Z][0-9]{1,2}) visits ([0-9]+) winrate ([0-9]+) order ([0-9]+) pv((?:\s[A-Z][0-9]{1,2})+)/);
+            const match = info.match(/^info move ([A-Z][0-9]{1,2}|pass) visits ([0-9]+) winrate ([0-9]+) order ([0-9]+) pv((?:\s(?:[A-Z][0-9]{1,2}|pass))+)/);
             if (match) {
                 result.push({
                     move: match[1],
