@@ -59,9 +59,9 @@ class GtpClient extends GtpBase {
      * @param {timeSettings} function client, size, handicapsを引数に取り、clientに
      *     GTPコマンドを送って時間設定を行う関数
      */
-    static genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], timeout = 0, stderrHandler, stdoutHandler) {
+    static genmoveFrom(sgf, byoyomi = null, format = 'gtp', options = [], stderrHandler, stdoutHandler) {
         let instance = new this();
-        instance.start(options, timeout);
+        instance.start(options);
         return {
             instance,
             promise: instance.genmoveFrom(sgf, byoyomi, format, stderrHandler, stdoutHandler)
@@ -73,12 +73,11 @@ class GtpClient extends GtpBase {
         this.size = 19;
     }
 
-    start(options = [], timeout = 0) {
+    start(options = []) {
         return super.start(
             this.COMMAND,
             this.OPTIONS.concat(options),
-            this.WORK_DIR,
-            timeout);
+            this.WORK_DIR);
     }
 
     async genmoveFrom(sgf, byoyomi = null, format = 'gtp', stderrHandler, stdoutHandler) {

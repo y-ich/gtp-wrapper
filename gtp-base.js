@@ -1,6 +1,6 @@
 /* global exports */
 
-const { execFile } = require('child_process');
+const { spawn } = require('child_process');
 const byline = require('byline');
 
 
@@ -18,12 +18,10 @@ class GtpBase {
         this.response = null;
     }
 
-    start(command, options, workDir, timeout = 0) {
-        this.process = execFile(command, options, {
+    start(command, options, workDir) {
+        this.process = spawn(command, options, {
             cwd: workDir,
-            env: process.env,
-            timeout: timeout,
-            maxBuffer: 1200 * 18000
+            env: process.env
         });
         this.process.on('error', function(err) {
             console.log('GtpBase error event', err);
@@ -60,6 +58,8 @@ class GtpBase {
         this.process.on('message', (message, sendHandle) => {
             console.log('GtpBase message event', message);
         });
+        this.process.stdout.setEncoding('utf8');
+        this.process.stderr.setEncoding('utf8');
         const stdout = byline.createStream(this.process.stdout, { keepEmptyLines: true });
         const stderr = byline.createStream(this.process.stderr, { keepEmptyLines: true });
         stdout.on('data', this.onStdoutData.bind(this));
