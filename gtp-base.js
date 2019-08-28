@@ -16,6 +16,7 @@ class GtpBase {
         this.stderrHandler = null;
         this.id = 1;
         this.response = null;
+        this._command = null;
     }
 
     start(command, options, workDir) {
@@ -75,9 +76,8 @@ class GtpBase {
                 return;
             }
             this.commandHandlers.push({ resolve, reject });
-            if (this.cmdIndex)
-                this.process.stdin.write(this.id + ' ');
-            this.process.stdin.write(cmdStr + '\n');
+            this._command = this.cmdIndex ? `${this.id} ${cmdStr}` : cmdStr;
+            this.process.stdin.write(this._command + '\n');
             this.id += 1;
         });
     }
@@ -186,6 +186,7 @@ class GtpBase {
                 const match = data.match(/^(=|\?)([0-9]+)?(.*)/);
                 if (match) {
                     this.response = {
+                        command: this._command,
                         prompt: match[1],
                         id: match[2],
                         result: match[3].trim()
